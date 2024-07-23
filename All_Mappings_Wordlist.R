@@ -83,31 +83,26 @@ highest_point <- function(mappinglist){
 
 #Returns the list of words using the auxillary methods defined
 build_word_list <- function(mappinglist){
-  wordlist <- data.frame(words = character(), stringsAsFactors = FALSE)
+  wordlist <- data.frame(words = character(), target = character(), non_target = character(), stringsAsFactors = FALSE)
   word_info <- list()
 
-  used_mappings = data.frame() # update this later
+  used_mappings <- list() # update this later
   
-  #storing all the positional information
-  # positional <- get_positional_info(mappinglist)
   
   #making sure the row exists in the list and that the lists of positions are not empty
   while(nrow(mappinglist) > 0 ){ # add: && !all(sapply(positional, function(df) nrow(df) == 0))
     print(nrow(mappinglist))
     curr_word <- highest_point(mappinglist)
-    # print(curr_word)
+    #print(curr_word)
     if (curr_word > 0){
-      # add current word to the word list
-      wordlist <- rbind(wordlist, data.frame(words = wordlist_v1_1[curr_word,1], stringsAsFactors = FALSE ))
       
       # get current word mappings
       word_mappings <- scored_words_PG[[curr_word]]
-      # print("word mappings str:")
-      # str(word_mappings)
       
-      # print("word mappings:")
-      # print(word_mappings)
-      # 
+      #tuple formatting: [phoneme, grapheme, position]
+       
+      target_mappings <- list()
+      non_target_mappings <- list()
       
       
       # check that word mappings is a data frame with the correct columns
@@ -117,8 +112,7 @@ build_word_list <- function(mappinglist){
       } else{
         stop("word_mappings is not a matrix or a data_frame")
       }
-      
-      
+      #print(word_mappings)
       # flatten word_mappings in to a list
       for(col_index in seq_along(word_mappings)){
         column_data <- word_mappings[, col_index]
@@ -129,11 +123,31 @@ build_word_list <- function(mappinglist){
         
         
         if (!is.na(phoneme) && !is.na(grapheme) && !is.na(position)){ # if of the values are null then them to word_info list
-          word_info <- append(word_info, list(data.frame(word = wordlist_v1_1[curr_word,1],phoneme = phoneme, grapheme = grapheme, position = position))) 
+          # word_info <- append(word_info, list(data.frame(word = wordlist_v1_1[curr_word,1],phoneme = phoneme, grapheme = grapheme, position = position))) 
+          tuple <- list(phoneme, grapheme, position)
+          if (!tuple_exists(used_mappings, tuple)){
+            # if the pg-position pair is not already in the list of used mappings then we add it to target and used_mapping list
+            target_mappings <- append(target_mappings, list(tuple))
+            used_mappings <- append(used_mappings, list(tuple))
+          }
+          else{
+            # we add it to the non target list since it is not a target mapping
+            non_target_mappings <- append(non_target_mappings, list(tuple))
+          }
         }
         
         
       }
+      #converting the target and non target lists to strings 
+      target_string <- convert_list_to_string(target_mappings)
+      non_target_string <- convert_list_to_string(non_target_mappings)
+      #print(target_string)
+      #print(" ")
+      #print(non_target_string)
+      
+      # add current word to the word list, along with its target and non target mappings
+      wordlist <- rbind(wordlist, data.frame(words = wordlist_v1_1[curr_word,1],target = target_string, non_target = non_target_string, stringsAsFactors = FALSE ))
+      #print(wordlist)
       
       # update mapping list by removing the word that was just used
       mappinglist <- new_mapping_list(word_mappings, mappinglist)
@@ -150,7 +164,7 @@ build_word_list <- function(mappinglist){
   #   group_by(spelling) %>%
   #   nest()
   
-  return(list(wordlist = wordlist,word_info = word_info, organized_info = grouped_df))
+  return(list(wordlist = wordlist,word_info = word_info, used_mappings = used_mappings))
 }
 
 #Removes the mappings from the last chosen word and creates a new list of mappings without them
@@ -204,49 +218,43 @@ verify_mappings <- function(mapinglist, used_mappings){
   
 }
 
-get_positional_info <- function(mappinglist){
-  wi_list <- list()
-  wf_list <- list()
-  si_list <- list()
-  sf_list <- list()
-  sm_list <- list()
-  
-  if ("position" %in% colnames(mappinglist)) {
-    print("Column 'position' exists in the dataset.")
-    num_rows <- nrow(mappinglist)
-    for (i in 1:num_rows){
-      row <- mappinglist[i, ]
-      if (row$position == "wi"){
-        wi_list <- append(wi_list, list(data.frame(position = row$position, phoneme = row$phoneme, grapheme = row$grapheme)))
-      }
-      else if (row$position == "wf"){
-        wf_list <- append(wf_list, list(data.frame(position = row$position, phoneme = row$phoneme, grapheme = row$grapheme)))
-      }
-      else if (row$position == "si"){
-        si_list <- append(si_list, list(data.frame(position = row$position, phoneme = row$phoneme, grapheme = row$grapheme)))
-      }
-      else if (row$position == "sf"){
-        sf_list <- append(sf_list, list(data.frame(position = row$position, phoneme = row$phoneme, grapheme = row$grapheme)))
-      }
-      else if (row$position == "sm"){
-        sm_list <- append(sm_list, list(data.frame(position = row$position, phoneme = row$phoneme, grapheme = row$grapheme)))
-      }
-      
+
+# Function to check if a tuple exists in the set
+# tuple_exists <- function(set_of_tuples, target_tuple) {
+#   for (tuple in set_of_tuples) {
+#     if (identical(tuple, target_tuple)) {
+#       return(TRUE)
+#     }
+#   }
+#   return(FALSE)
+# }
+
+#standardizes all the tuples to ensure correct checking
+standardize_tuple <- function(tuple) {
+  return(sapply(tuple, as.character))
+}
+
+# Function to check if a tuple exists in the set
+tuple_exists <- function(set_of_tuples, target_tuple) {
+  target_tuple <- standardize_tuple(target_tuple)
+  for (tuple in set_of_tuples) {
+    if (all(standardize_tuple(tuple) == target_tuple)) {
+      return(TRUE)
     }
-    
-    
-  } else {
-    print("Column 'position' does not exist in the dataset.")
   }
-  
-  wi_combined <- do.call(rbind, wi_list)
-  wf_combined <- do.call(rbind, wf_list)
-  
-  si_combined <- do.call(rbind, si_list)
-  sf_combined <- do.call(rbind, sf_list)
-  sm_combined <- do.call(rbind, sm_list)
-  
-  return(list(wi = wi_combined, wf = wf_combined, si = si_combined, sf = sf_combined, sm = sm_combined))
+  return(FALSE)
+}
+
+# Function to add a tuple to the set if it doesn't already exist
+add_tuple <- function(set_of_tuples, new_tuple) {
+  if (!tuple_exists(set_of_tuples, new_tuple)) {
+    set_of_tuples <- append(set_of_tuples, list(new_tuple))
+  }
+  return(set_of_tuples)
+}
+
+convert_list_to_string <- function(list_of_tuples) {
+  return(paste(sapply(list_of_tuples, function(x) paste0("(", paste(x, collapse = ","), ")")), collapse = ";"))
 }
 
 
