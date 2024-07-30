@@ -13,6 +13,7 @@ Instructions to run (Current code was written with the version1.1 files):
 
 
 Overview of the functions:
+
 filter_word_length(word_to_check, min_length, max_length)
   This function checks if the word_to_check is between the min and max length(inclusive), returns true if it is, else false. You can update the min_length and max_length parameters as necessary.
 
