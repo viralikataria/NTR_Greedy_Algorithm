@@ -5,7 +5,7 @@ filter_word_length <- function(word_to_check, min_length, max_length) {
   word_length <- nchar(word_to_check)
   return(word_length >= min_length && word_length <= max_length)
 }
-
+#filters out words based on frequency
 filter_word_frequency <- function (word, min_frequency){
   if(wordfrequency[wordfrequency$Word==word, ]$frequency[1] > min_frequency){      #filters words with a frequency 
     return(TRUE)
@@ -13,6 +13,7 @@ filter_word_frequency <- function (word, min_frequency){
   return(FALSE)
   
 }
+#filters out words based on syllable length
 filter_word_by_syllable <- function( word, min_syllable_num){
   syllables <- wordlist_v1_2[wordlist_v1_2$spelling == word, ]$syllables[1]
   if (is.na(syllables)) {
@@ -21,16 +22,47 @@ filter_word_by_syllable <- function( word, min_syllable_num){
   return(syllables > min_syllable_num)
     
 }
+# filters out words that we dont want in the list
+filter_certain_words <- function(word){
+  words_to_filter <- list("motherfucker")
+  for (i in words_to_filter){
+    if (word == i){
+      return(FALSE)
+    }
+  }
+  return(TRUE)
+}
+
+#function to filter out any words that have duplicate spellings in the wordlist
+filter_out_duplicate_spellings <- function(wordlist, word){
+  for(i in wordlist){
+    if (word == i){
+      return(FALSE)
+    }
+  }
+  return(TRUE)
+  
+  
+}
+
+
 
 #Gives each word a point value based on how many unique mappings it contains. Adds additional points based on how
 #rare its mappings are. 
-get_word_points <- function(word_index, mappinglist){
+get_word_points <- function(word_index, mappinglist, wordlist){
   word <- wordlist_v1_1[[word_index,1]] 
-  if(!filter_word_frequency(word, 2)){      #filters words with a frequency 
+  if(!filter_word_frequency(word, 3)){      #filters words with a frequency 
     return(0)
   }
   
   if(!filter_word_by_syllable(word, 2)){          #filters out word by number of syllables
+    return(0)
+  }
+  
+  if(!filter_certain_words(word)){
+    return(0)
+  }
+  if(!filter_out_duplicate_spellings(wordlist, word)){ # filters out duplicate spellings
     return(0)
   }
   
@@ -66,11 +98,11 @@ get_word_points <- function(word_index, mappinglist){
 }
 
 #Returns index of word that currently holds the highest number of points
-highest_point <- function(mappinglist){
+highest_point <- function(mappinglist, wordlist){
   final_val <- 0
   final_index <- 0
   for (i in 1:nrow(wordlist_v1_1)){
-    cur_val <- get_word_points(i, mappinglist)  
+    cur_val <- get_word_points(i, mappinglist, wordlist)  
     if(cur_val > final_val){
       final_val <- cur_val
       final_index <- i
@@ -83,7 +115,7 @@ highest_point <- function(mappinglist){
 
 #Returns the list of words using the auxillary methods defined
 build_word_list <- function(mappinglist){
-  wordlist <- data.frame(words = character(), target = character(), non_target = character(), stringsAsFactors = FALSE)
+  wordlist <- data.frame(words = character(), target = character(), non_target = character(), all_mappings = character(), stringsAsFactors = FALSE)
   word_info <- list()
 
   used_mappings <- list() # update this later
@@ -92,7 +124,7 @@ build_word_list <- function(mappinglist){
   #making sure the row exists in the list and that the lists of positions are not empty
   while(nrow(mappinglist) > 0 ){ # add: && !all(sapply(positional, function(df) nrow(df) == 0))
     print(nrow(mappinglist))
-    curr_word <- highest_point(mappinglist)
+    curr_word <- highest_point(mappinglist, wordlist$spelling)
     #print(curr_word)
     if (curr_word > 0){
       
@@ -103,7 +135,7 @@ build_word_list <- function(mappinglist){
        
       target_mappings <- list()
       non_target_mappings <- list()
-      
+      all_mappings <- list()
       
       # check that word mappings is a data frame with the correct columns
       if(is.matrix(word_mappings) || is.data.frame(word_mappings)){
@@ -125,6 +157,9 @@ build_word_list <- function(mappinglist){
         if (!is.na(phoneme) && !is.na(grapheme) && !is.na(position)){ # if of the values are null then them to word_info list
           # word_info <- append(word_info, list(data.frame(word = wordlist_v1_1[curr_word,1],phoneme = phoneme, grapheme = grapheme, position = position))) 
           tuple <- list(phoneme, grapheme, position)
+          #adds the tuple to the list of all the mappings for the word
+          all_mappings <- append(all_mappings, list(tuple))
+          
           if (!tuple_exists(used_mappings, tuple)){
             # if the pg-position pair is not already in the list of used mappings then we add it to target and used_mapping list
             target_mappings <- append(target_mappings, list(tuple))
@@ -138,15 +173,16 @@ build_word_list <- function(mappinglist){
         
         
       }
-      #converting the target and non target lists to strings 
+      #converting the all mappings, target and non target lists to strings 
       target_string <- convert_list_to_string(target_mappings)
       non_target_string <- convert_list_to_string(non_target_mappings)
+      all_mappings_string <- convert_list_to_string(all_mappings)
       #print(target_string)
       #print(" ")
       #print(non_target_string)
       
-      # add current word to the word list, along with its target and non target mappings
-      wordlist <- rbind(wordlist, data.frame(words = wordlist_v1_1[curr_word,1],target = target_string, non_target = non_target_string, stringsAsFactors = FALSE ))
+      # add current word to the word list, along with its targetmappings,  non target mappings, and all the mapppings in the word
+      wordlist <- rbind(wordlist, data.frame(words = wordlist_v1_1[curr_word,1],target = target_string, non_target = non_target_string, all_mappings = all_mappings_string, stringsAsFactors = FALSE ))
       #print(wordlist)
       
       # update mapping list by removing the word that was just used
@@ -158,12 +194,7 @@ build_word_list <- function(mappinglist){
     }
     
   }
-  # organizing data into information by words
-  # combined_df <- bind_rows(word_info)
-  # grouped_df <- combined_df %>%
-  #   group_by(spelling) %>%
-  #   nest()
-  
+
   return(list(wordlist = wordlist,word_info = word_info, used_mappings = used_mappings))
 }
 
@@ -218,16 +249,6 @@ verify_mappings <- function(mapinglist, used_mappings){
   
 }
 
-
-# Function to check if a tuple exists in the set
-# tuple_exists <- function(set_of_tuples, target_tuple) {
-#   for (tuple in set_of_tuples) {
-#     if (identical(tuple, target_tuple)) {
-#       return(TRUE)
-#     }
-#   }
-#   return(FALSE)
-# }
 
 #standardizes all the tuples to ensure correct checking
 standardize_tuple <- function(tuple) {
