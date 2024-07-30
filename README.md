@@ -13,4 +13,12 @@ Instructions to run (Current code was written with the version1.1 files):
 
 
 Overview of the functions:
+filter_word_length(word_to_check, min_length, max_length)
+  This function checks if the word_to_check is between the min and max length(inclusive), returns true if it is, else false. You can update the min_length and max_length parameters as necessary.
+
+filter_word_frequency(word, min_frequency)
+  This function checks if the word in greater than the min_frequency, retunrs true if it is, flase if it is not. You can update the min_frequency parameter as necessary.
+
+filter_word_by_syllable(word, min_syllable_num)
+  
 
