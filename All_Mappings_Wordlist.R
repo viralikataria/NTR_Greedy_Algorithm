@@ -22,8 +22,8 @@ filter_word_by_syllable <- function( word, min_syllable_num){
   return(syllables > min_syllable_num)
     
 }
-# filters out words that we dont want in the list
-filter_certain_words <- function(word){
+# filters out specific words that we dont want in the list such as profanity
+filter_specific_words <- function(word){
   words_to_filter <- list("motherfucker")
   for (i in words_to_filter){
     if (word == i){
@@ -34,7 +34,11 @@ filter_certain_words <- function(word){
 }
 
 #function to filter out any words that have duplicate spellings in the wordlist
+#can also use the function to ensure we can get several unique lists of words
 filter_out_duplicate_spellings <- function(wordlist, word){
+  if(is.null(wordlist)){
+    return(TRUE)
+  }
   for(i in wordlist){
     if (word == i){
       return(FALSE)
@@ -42,14 +46,13 @@ filter_out_duplicate_spellings <- function(wordlist, word){
   }
   return(TRUE)
   
-  
 }
 
 
 
 #Gives each word a point value based on how many unique mappings it contains. Adds additional points based on how
 #rare its mappings are. 
-get_word_points <- function(word_index, mappinglist, wordlist){
+get_word_points <- function(word_index, mappinglist, wordlist, previousWords){
   word <- wordlist_v1_1[[word_index,1]] 
   if(!filter_word_frequency(word, 3)){      #filters words with a frequency 
     return(0)
@@ -59,10 +62,13 @@ get_word_points <- function(word_index, mappinglist, wordlist){
     return(0)
   }
   
-  if(!filter_certain_words(word)){
+  if(!filter_specific_words(word)){
     return(0)
   }
   if(!filter_out_duplicate_spellings(wordlist, word)){ # filters out duplicate spellings
+    return(0)
+  }
+  if(!filter_out_duplicate_spellings(previousWords, word)){ # filters out words that we have already used, to generate unique lists
     return(0)
   }
   
@@ -98,11 +104,11 @@ get_word_points <- function(word_index, mappinglist, wordlist){
 }
 
 #Returns index of word that currently holds the highest number of points
-highest_point <- function(mappinglist, wordlist){
+highest_point <- function(mappinglist, wordlist, previousWords){
   final_val <- 0
   final_index <- 0
   for (i in 1:nrow(wordlist_v1_1)){
-    cur_val <- get_word_points(i, mappinglist, wordlist)  
+    cur_val <- get_word_points(i, mappinglist, wordlist, previousWords)  
     if(cur_val > final_val){
       final_val <- cur_val
       final_index <- i
@@ -114,7 +120,7 @@ highest_point <- function(mappinglist, wordlist){
 
 
 #Returns the list of words using the auxillary methods defined
-build_word_list <- function(mappinglist){
+build_word_list <- function(mappinglist, previousWords){
   wordlist <- data.frame(words = character(), target = character(), non_target = character(), all_mappings = character(), stringsAsFactors = FALSE)
   word_info <- list()
 
@@ -124,7 +130,7 @@ build_word_list <- function(mappinglist){
   #making sure the row exists in the list and that the lists of positions are not empty
   while(nrow(mappinglist) > 0 ){ # add: && !all(sapply(positional, function(df) nrow(df) == 0))
     print(nrow(mappinglist))
-    curr_word <- highest_point(mappinglist, wordlist$spelling)
+    curr_word <- highest_point(mappinglist, wordlist$spelling, previousWords)
     #print(curr_word)
     if (curr_word > 0){
       
