@@ -62,7 +62,7 @@ get_word_points <- function(word_index, mappinglist, wordlist, previousWords){
     return(0)
   }
   
-  if(!filter_specific_words(word)){
+  if(!filter_specific_words(word)){ # filters out specific words
     return(0)
   }
   if(!filter_out_duplicate_spellings(wordlist, word)){ # filters out duplicate spellings
@@ -191,7 +191,7 @@ build_word_list <- function(mappinglist, previousWords){
       wordlist <- rbind(wordlist, data.frame(words = wordlist_v1_1[curr_word,1],target = target_string, non_target = non_target_string, all_mappings = all_mappings_string, stringsAsFactors = FALSE ))
       #print(wordlist)
       
-      # update mapping list by removing the word that was just used
+      # update mapping list by removing the mappings that were just used
       mappinglist <- new_mapping_list(word_mappings, mappinglist)
       
     }
@@ -207,9 +207,9 @@ build_word_list <- function(mappinglist, previousWords){
 #Removes the mappings from the last chosen word and creates a new list of mappings without them
 new_mapping_list <- function(word, mappinglist){
   for (i in 1:length(word)){
-    if (nrow(filter(mappinglist, phoneme == inhouse_to_ipa(word[1,i]), grapheme == word[2, i]) != 0)){
+    if (nrow(filter(mappinglist, phoneme == inhouse_to_ipa(word[1,i]), grapheme == word[2, i], position == word[3,i]) != 0)){
       mappinglist <- mappinglist[!(mappinglist$phoneme == inhouse_to_ipa(word[1,i]) &
-                 mappinglist$grapheme == word[2,i]), ]
+                 mappinglist$grapheme == word[2,i] & mappinglist$position == word[3,i]), ]
     }
   }
   return(mappinglist)
