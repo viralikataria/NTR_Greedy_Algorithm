@@ -1,5 +1,7 @@
 library(dplyr)
-
+#declaring the list as global variable
+# contains all the specific words we wish to filter out such as profanity etc.
+words_to_filter <- list("motherfucker")
 # Filters out words in the list that are not within a minimum and maximum length (inclusive)
 filter_word_length <- function(word_to_check, min_length, max_length) {
   word_length <- nchar(word_to_check)
@@ -7,7 +9,11 @@ filter_word_length <- function(word_to_check, min_length, max_length) {
 }
 #filters out words based on frequency
 filter_word_frequency <- function (word, min_frequency){
-  if(wordfrequency[wordfrequency$Word==word, ]$frequency[1] > min_frequency){      #filters words with a frequency 
+  # Subset the frequency values
+  freq <- wordfrequency[wordfrequency$Word == word, ]$frequency
+  
+  # Check if the frequency is not empty and is not NA
+  if (length(freq) > 0 && !is.na(freq[1]) && freq[1] > min_frequency) {
     return(TRUE)
   }
   return(FALSE)
@@ -22,16 +28,6 @@ filter_word_by_syllable <- function( word, min_syllable_num){
   return(syllables > min_syllable_num)
     
 }
-# filters out specific words that we dont want in the list such as profanity
-filter_specific_words <- function(word){
-  words_to_filter <- list("motherfucker")
-  for (i in words_to_filter){
-    if (word == i){
-      return(FALSE)
-    }
-  }
-  return(TRUE)
-}
 
 #function to filter out any words that have duplicate spellings in the wordlist
 #can also use the function to ensure we can get several unique lists of words
@@ -45,7 +41,6 @@ filter_out_duplicate_spellings <- function(wordlist, word){
     }
   }
   return(TRUE)
-  
 }
 
 
@@ -53,7 +48,7 @@ filter_out_duplicate_spellings <- function(wordlist, word){
 #Gives each word a point value based on how many unique mappings it contains. Adds additional points based on how
 #rare its mappings are. 
 get_word_points <- function(word_index, mappinglist, wordlist, previousWords){
-  word <- wordlist_v1_1[[word_index,1]] 
+  word <- wordlist_v1_2[[word_index,1]] 
   if(!filter_word_frequency(word, 3)){      #filters words with a frequency 
     return(0)
   }
@@ -62,7 +57,7 @@ get_word_points <- function(word_index, mappinglist, wordlist, previousWords){
     return(0)
   }
   
-  if(!filter_specific_words(word)){ # filters out specific words
+  if(!filter_out_duplicate_spellings(words_to_filter, word)){ # filters out specific words we defined above
     return(0)
   }
   if(!filter_out_duplicate_spellings(wordlist, word)){ # filters out duplicate spellings
@@ -84,7 +79,7 @@ get_word_points <- function(word_index, mappinglist, wordlist, previousWords){
     
     if(length(row_number) != 0){
       points <- points + 100 
-      rarity <- rarity + 5000/(mappinglist[[row_number, 5]])
+      rarity <- rarity + 5000/(mappinglist[[row_number, 4]])
     }
   }
   
@@ -107,7 +102,7 @@ get_word_points <- function(word_index, mappinglist, wordlist, previousWords){
 highest_point <- function(mappinglist, wordlist, previousWords){
   final_val <- 0
   final_index <- 0
-  for (i in 1:nrow(wordlist_v1_1)){
+  for (i in 1:nrow(wordlist_v1_2)){
     cur_val <- get_word_points(i, mappinglist, wordlist, previousWords)  
     if(cur_val > final_val){
       final_val <- cur_val
@@ -131,7 +126,7 @@ build_word_list <- function(mappinglist, previousWords){
   while(nrow(mappinglist) > 0 ){ # add: && !all(sapply(positional, function(df) nrow(df) == 0))
     print(nrow(mappinglist))
     curr_word <- highest_point(mappinglist, wordlist$spelling, previousWords)
-    #print(curr_word)
+    print(paste("curr:", curr_word))
     if (curr_word > 0){
       
       # get current word mappings
@@ -188,7 +183,7 @@ build_word_list <- function(mappinglist, previousWords){
       #print(non_target_string)
       
       # add current word to the word list, along with its targetmappings,  non target mappings, and all the mapppings in the word
-      wordlist <- rbind(wordlist, data.frame(words = wordlist_v1_1[curr_word,1],target = target_string, non_target = non_target_string, all_mappings = all_mappings_string, stringsAsFactors = FALSE ))
+      wordlist <- rbind(wordlist, data.frame(words = wordlist_v1_2[curr_word,1],target = target_string, non_target = non_target_string, all_mappings = all_mappings_string, stringsAsFactors = FALSE ))
       #print(wordlist)
       
       # update mapping list by removing the mappings that were just used
@@ -196,7 +191,9 @@ build_word_list <- function(mappinglist, previousWords){
       
     }
     else{
-      return(list(wordlist = wordlist, word_info = word_info, used_mappings = used_mappings)) # used mappings is unused rn, might not need
+      #return(list(wordlist = wordlist, word_info = word_info, used_mappings = used_mappings)) # used mappings is unused rn, might not need
+      print("currword not > 0")
+      next
     }
     
   }
