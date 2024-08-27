@@ -29,6 +29,14 @@ filter_word_by_syllable(word, min_syllable_num)
 filter_out_duplicate_spellings(wordlist, word)
   This funtion checks if the words exists in the wordlist. If it does then it returns false else true. (idk why i did it backwards but we ball)
 
+get_word_points(word_index, mappingslist, wordlist, previousWords):
+  This function assigns a word points given certain conditions. The word_index refers to the index of the word in the mappinglist, the mappinglist is the mappinglist, wordlist is a list of words that are already in the current list - it helps prevent duplicate spellings of words incase the phoneme and graphemes are differnt, and previousWords is a list that was already creted - this allows us to create multiple unique lists. This function will return 0 if the word matches a condition that needs to be filtered out, or the number of points + the rarity.
+
+highest_point(mappinglist, wordlist, previousWords):
+  This function uses an greedy algorithm to find the word with the most number of points at that given time. it return the final index. The parametrs are used to call the get_word_points function.
+
+build_word_list(mappinglist, perviousWords):
+  
 
 
 
