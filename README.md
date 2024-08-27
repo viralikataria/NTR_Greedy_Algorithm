@@ -35,7 +35,34 @@ get_word_points(word_index, mappingslist, wordlist, previousWords):
 highest_point(mappinglist, wordlist, previousWords):
   This function uses an greedy algorithm to find the word with the most number of points at that given time. it return the final index. The parametrs are used to call the get_word_points function.
 
+new_mapping_list( word, mappinglist):
+  This function removes the row containting the word from the mappinglist. It returns the updated mappinglist.
+
+verify_mappipng(mappinglist, used_mappings):
+  This function is currently incomplete, but its goals is to verify that all the list from the build_word_list function's used mapping list contains all the mappings. This will propabably only be true for the first list, if making multiple unique lists. It should output what mappings have not been used. THIS WILL NEED TO BE IMPLEMENTED.
+
+standardize_tuple(tuple):
+  This function just makes sure all the tuples are correctly formatted.
+
+tuple_exists(set_of_tuples, target_tuples):
+  This function ensure that the tuple value is not already in out list of tuples.
+
+add_tuple(set_of_tiples, new_tuple):
+  This function adds the new_tuple to the set_of_tuples list. It returns the updated list.
+
+convert_list_to_string(list_of_tuples):
+  This function converts the list of tuples in to a nicely formatted string.
+
+
+WRITE THIS AT THE END
 build_word_list(mappinglist, perviousWords):
+  This function combines all the other functions inorder to produce a list of words with unique mappings. The comments in htis function will give more insight about the function. The previousWords parameter may be NULL, but mappinglist requires and actual list input. It returns a table of the words used with thier target and non-target mappings and phonetics sounding, along with a list of all the unique mapping that were used in the list. the word_info return variable is currently empty, but i fyou uncomment the line that apppends information to the word_info variable, it will no longer be empty.
+
+
+
+
+Problems with this code:
+  - It is currently running into an infinite loop, I suspect that the code is erroring in the get_word_points function.
   
 
 
